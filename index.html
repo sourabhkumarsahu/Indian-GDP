@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India's Economic Ascent | Real Data</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ApexCharts - Alternative to Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+        .bg-india-orange { background-color: #FF9933; }
+        .bg-india-green { background-color: #138808; }
+        .bg-india-white { background-color: #FFFFFF; }
+        .indian-flag {
+            display: flex;
+            align-items: center;
+            margin: 0 auto;
+            width: 120px;
+            height: 24px;
+        }
+        .indian-flag > div {
+            height: 100%;
+            flex: 1;
+        }
+        .indian-flag .chakra {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .chart-container {
+            position: relative;
+            height: 340px;
+            width: 100%;
+            min-height: 300px;
+        }
+        .api-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 0.7rem;
+            background-color: #f0f9ff;
+            border: 1px solid #93c5fd;
+            color: #2563eb;
+            padding: 2px 6px;
+            border-radius: 9999px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.75rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+<div id="app" v-cloak class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <header class="text-center mb-8 relative">
+        <!-- Correct Indian flag -->
+        <div class="relative w-48 h-10 mx-auto mb-4">
+            <div class="absolute inset-0 flex">
+                <div class="flex-1 bg-india-orange"></div>
+                <div class="flex-1 bg-india-white"></div>
+                <div class="flex-1 bg-india-green"></div>
+            </div>
+            <!-- Ashoka Chakra (simplified) -->
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="#000080" stroke-width="1"></circle>
+                    <circle cx="12" cy="12" r="1" fill="#000080"></circle>
+                    <!-- Simplified spokes -->
+                    <g stroke="#000080" stroke-width="1">
+                        <line x1="12" y1="3" x2="12" y2="21"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="5" y1="5" x2="19" y2="19"></line>
+                        <line x1="19" y1="5" x2="5" y2="19"></line>
+                    </g>
+                </svg>
+            </div>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">India's Economic Ascent</h1>
+        <p class="text-lg text-gray-600">When will India surpass other economic powers?</p>
+        <p class="text-sm text-gray-500">Last updated: {{ dataLastUpdated }}</p>
+    </header>
+
+    <!-- Loading Indicator -->
+    <div v-if="isLoading" class="flex flex-col justify-center items-center py-12">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+        <p class="text-gray-600">Loading real-time economic data from World Bank...</p>
+        <p class="text-sm text-gray-500 mt-2">This may take a moment as we fetch the latest GDP figures.</p>
+    </div>
+
+    <!-- Error Banner -->
+    <div v-if="errorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+        <strong class="font-bold">Error:</strong>
+        <span class="block sm:inline">{{ errorMessage }}</span>
+        <p class="mt-2 text-sm">Please try refreshing the page or check your network connection.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div v-if="!isLoading && !errorMessage" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Country Selection Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Select Country to Compare</h2>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Choose a country to compare with India:</label>
+                <div class="relative">
+                    <select v-model="selectedCountry"
+                            class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none">
+                        <option v-for="country in availableCountries" :key="country.id" :value="country.id">
+                            {{ country.name }}
+                        </option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Countries Comparison -->
+            <div class="mb-6">
+                <h3 class="font-medium text-gray-800 mb-3">Economic Comparison</h3>
+
+                <div class="p-4 bg-orange-50 border border-orange-100 rounded-lg mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-700">India</h4>
+                        <span class="text-xs font-medium px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">Rank #{{ indiaGlobalRank }}</span>
+                    </div>
+                    <p class="text-2xl font-bold text-orange-600">${{ formatCurrency(indiaGDP) }} Trillion</p>
+                    <p class="text-sm text-gray-700 mb-1">Annual Growth: <span class="font-medium text-orange-700">{{ indiaGrowthRate.toFixed(2) }}%</span></p>
+                    <p class="text-sm text-gray-700">Population: {{ formatPopulation(indiaPopulation) }}</p>
+                    <p class="text-sm text-gray-700">Per Capita: ${{ formatNumber(indiaPerCapita) }}</p>
+                </div>
+
+                <div class="p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-700">{{ selectedCountryName }}</h4>
+                        <span class="text-xs font-medium px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Rank #{{ selectedCountryRank }}</span>
+                    </div>
+                    <p class="text-2xl font-bold text-blue-600">${{ formatCurrency(selectedCountryGDP) }} Trillion</p>
+                    <p class="text-sm text-gray-700 mb-1">Annual Growth: <span class="font-medium text-blue-700">{{ selectedCountryGrowthRate.toFixed(2) }}%</span></p>
+                    <p class="text-sm text-gray-700">Population: {{ formatPopulation(selectedCountryPopulation) }}</p>
+                    <p class="text-sm text-gray-700">Per Capita: ${{ formatNumber(selectedCountryPerCapita) }}</p>
+                </div>
+            </div>
+
+            <!-- Gap Analysis -->
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs space-y-1">
+                <p><span class="font-medium">GDP Gap:</span> ${{ formatNumber(gdpGap) }} Trillion ({{ gapPercentage.toFixed(1) }}%)</p>
+                <p><span class="font-medium">Years at Current Rates:</span> {{ exactYearsToSurpass.toFixed(1) }} years</p>
+                <p><span class="font-medium">Data Source:</span> World Bank (WDI)</p>
+            </div>
+        </div>
+
+        <!-- Projection Chart Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">GDP Projection</h2>
+                <div class="text-sm text-gray-500" v-if="isApiLoading">
+                    <span class="inline-block h-3 w-3 bg-blue-500 rounded-full animate-pulse mr-1"></span>
+                    Updating...
+                </div>
+            </div>
+
+            <!-- Chart container with ApexCharts -->
+            <div class="chart-container">
+                <div id="gdpProjectionChart"></div>
+            </div>
+
+            <!-- Projection Results - Handles all cases properly -->
+            <div class="mt-5 p-4 rounded-lg text-center"
+                 :class="yearToSurpass === Infinity ? 'bg-yellow-50' : 'bg-blue-50'">
+                <h3 class="font-medium text-gray-800">Based on current growth trends:</h3>
+                <div class="mt-2">
+                    <template v-if="yearToSurpass === 0">
+                        <p class="text-lg">India's economy is <span class="font-semibold">already larger</span> than {{ selectedCountryName }}'s</p>
+                    </template>
+                    <template v-else-if="yearToSurpass === Infinity">
+                        <p class="text-lg">India <span class="font-semibold">will not surpass</span> {{ selectedCountryName }} with current growth rates</p>
+                        <p class="text-orange-600 mt-2">India's growth rate needs to exceed {{ selectedCountryName }}'s for surpassing to occur</p>
+                    </template>
+                    <template v-else>
+                        <p class="text-lg">India will surpass <span class="font-semibold">{{ selectedCountryName }}</span> in</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ yearToSurpass }} years</p>
+                        <p class="text-sm text-gray-600">(Year {{ currentYear + yearToSurpass }})</p>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Growth Rate Adjustment -->
+            <div class="mt-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="font-medium text-gray-800 mb-3">Adjust Growth Rates</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">India's Annual Growth Rate (%)</label>
+                        <input type="range" v-model.number="customIndiaGrowthRate" min="0" max="15" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>0%</span>
+                            <span>{{ customIndiaGrowthRate.toFixed(1) }}%</span>
+                            <span>15%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{{ selectedCountryName }}'s Annual Growth Rate (%)</label>
+                        <input type="range" v-model.number="customSelectedCountryGrowthRate" min="0" max="15" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>0%</span>
+                            <span>{{ customSelectedCountryGrowthRate.toFixed(1) }}%</span>
+                            <span>15%</span>
+                        </div>
+                    </div>
+                </div>
+                <button @click="recalculateWithCustomRates" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out">
+                    Recalculate Projection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required Growth Rate Calculator -->
+    <div v-if="!isLoading && !errorMessage" class="mt-8 bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Required Growth Rate Calculator</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Target Country</label>
+                <select v-model="targetCountryForRate" class="w-full p-2 border border-gray-300 rounded-md">
+                    <option v-for="country in availableCountries" :key="country.id" :value="country.id">
+                        {{ country.name }}
+                    </option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Years to Surpass</label>
+                <input type="number" min="1" max="100" v-model.number="yearsToSurpass" class="w-full p-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="flex items-end">
+                <button @click="calculateRequiredRate" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out">
+                    Calculate Required Growth Rate
+                </button>
+            </div>
+        </div>
+
+        <div v-if="showRequiredRate" class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 class="font-semibold text-gray-800">Required Growth Rate</h3>
+            <div class="mt-3 text-center">
+                <p class="text-lg">For India to surpass <span class="font-semibold">{{ targetCountryForRateName }}</span> in {{ yearsToSurpass }} years:</p>
+                <p class="text-3xl font-bold text-green-600">{{ requiredGrowthRate.toFixed(2) }}% annual growth</p>
+                <p class="text-sm text-gray-600">(Assuming {{ targetCountryForRateName }} grows at {{ targetCountryGrowthRate.toFixed(2) }}% annually)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Methodology & Info -->
+    <div v-if="!isLoading" class="mt-8 bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Methodology</h2>
+
+        <div class="space-y-4 text-gray-700">
+            <p>This application uses real-time GDP data from the World Bank's World Development Indicators database. Growth projections are calculated using compound annual growth rate (CAGR) formula:</p>
+
+            <p class="font-mono bg-gray-100 p-2 rounded">Future GDP = Current GDP × (1 + annual growth rate)^years</p>
+
+            <p>Growth rates are derived from 5-year historical averages. The year of surpassing is calculated by finding when India's projected GDP exceeds the target country's projected GDP.</p>
+
+            <div class="bg-yellow-50 p-4 rounded-lg mt-4">
+                <h3 class="font-medium text-yellow-800 mb-2">Important Note</h3>
+                <p class="text-yellow-800 text-sm">These projections are based on historical growth patterns and simplify complex economic dynamics. Actual economic trajectories depend on numerous factors including policy changes, technological advancements, demographic shifts, and global economic conditions.</p>
+            </div>
+
+            <!-- Current Date/Time Information -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-sm text-gray-500">Current Date and Time (UTC): 2025-03-09 18:24:40</p>
+                <p class="text-sm text-gray-500">Last Updated: {{ dataLastUpdated }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+        <p>Data source: World Bank (World Development Indicators)</p>
+        <p class="flex items-center justify-center text-sm text-gray-600">
+            Made with
+            <span class="mx-1 text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+            by
+            <a href="https://github.com/sourabhkumarsahu"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="ml-1 font-medium text-indigo-600 hover:text-indigo-800 hover:underline transition-colors">
+                Sourabh Sahu
+            </a>
+        </p>
+    </footer>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
