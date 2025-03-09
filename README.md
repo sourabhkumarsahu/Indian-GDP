@@ -30,7 +30,7 @@ But when you try to understand the actual numbers, you get lost in:
 
 ## 🚀 Live Demo
 
-[Access the dashboard here](https://indiagdp.example.com)
+[Access the dashboard here](https://indian-economic-predications.vercel.app/)
 
 ## 💻 How to Use
 
@@ -44,6 +44,6 @@ But when you try to understand the actual numbers, you get lost in:
 - Frontend: Vue.js + Tailwind CSS
 - Charts: ApexCharts
 - Data: World Bank World Development Indicators
-- Hosted on: Netlify/Vercel
+- Hosted on: Vercel
 
 ## 📂 Project Structure
